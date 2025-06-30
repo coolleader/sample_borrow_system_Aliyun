@@ -4,6 +4,7 @@ import oss2
 import io
 from datetime import datetime
 import openpyxl
+import random
 
 # 阿里云 OSS 配置（从 secrets 读）
 ACCESS_KEY_ID = st.secrets["oss_access_key_id"]
@@ -18,8 +19,9 @@ bucket = oss2.Bucket(auth, ENDPOINT, BUCKET_NAME)
 # 文件名
 OSS_FILE = "sample_inventory.xlsx"
 
-# 读取 Excel
+# 读取 Excel（每次加随机数防止意外缓存）
 def load_data():
+    st.info(f"🔄 正在从 OSS 加载最新文件... (ID: {random.randint(1, 999999)})")
     try:
         result = bucket.get_object(OSS_FILE)
         df = pd.read_excel(io.BytesIO(result.read()), dtype=str)
@@ -43,15 +45,16 @@ def save_data(df):
     output.seek(0)
     bucket.put_object(OSS_FILE, output.getvalue())
 
-# ============ Streamlit 主程序 ============
+# ================================
 st.title("📦 样品送存管理系统")
 
 menu = ["样品登记", "送出样品", "归还样品", "当前状态", "删除样品"]
 choice = st.radio("选择操作", menu)
 
+# ================================
 if choice == "样品登记":
     st.header("📄 样品登记")
-    df = load_data()  # 这里读最新数据
+    df = load_data()
 
     sample_type = st.text_input("型号").strip()
     sample_id = st.text_input("序列号").strip()
@@ -75,9 +78,11 @@ if choice == "样品登记":
         else:
             st.warning("⚠️ 序列号为空或已存在")
 
+# ================================
 elif choice == "送出样品":
     st.header("📤 送出样品")
-    df = load_data()  # 读最新数据
+    df = load_data()
+
     sid = st.text_input("序列号").strip()
     client = st.text_input("送出客户").strip()
     send_attach = st.text_input("送出附件").strip()
@@ -100,9 +105,11 @@ elif choice == "送出样品":
         else:
             st.warning("⚠️ 样品不存在")
 
+# ================================
 elif choice == "归还样品":
     st.header("📥 归还样品")
-    df = load_data()  # 读最新数据
+    df = load_data()
+
     sid = st.text_input("序列号").strip()
     deliver_id = st.text_input("收货快递号").strip()
     return_attach = st.text_input("归还附件").strip()
@@ -122,11 +129,22 @@ elif choice == "归还样品":
         else:
             st.warning("⚠️ 样品不存在")
 
+# ================================
 elif choice == "当前状态":
     st.header("📊 当前样品状态")
-    df = load_data()  # 读最新数据
-    df_display = df.astype(str)
-    st.dataframe(df_display, use_container_width=True)
+
+    # 手动刷新按钮
+    if st.button("🔁 手动刷新 OSS 文件"):
+        st.session_state['force_reload'] = True
+
+    # 如果按了按钮，就强制跑一次 load_data()
+    if st.session_state.get('force_reload', False):
+        df = load_data()
+        st.session_state['force_reload'] = False
+    else:
+        df = load_data()
+
+    st.dataframe(df.astype(str), use_container_width=True)
 
     # 下载 Excel
     excel_buffer = io.BytesIO()
@@ -144,9 +162,11 @@ elif choice == "当前状态":
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+# ================================
 elif choice == "删除样品":
     st.header("❌ 删除样品")
-    df = load_data()  # 读最新数据
+    df = load_data()
+
     sid = st.text_input("要删除的序列号").strip()
     confirm = st.checkbox("确认删除该样品")
 
