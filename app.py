@@ -44,7 +44,6 @@ def save_data(df):
     bucket.put_object(OSS_FILE, output.getvalue())
 
 # ============ Streamlit 主程序 ============
-df = load_data()
 st.title("📦 样品送存管理系统")
 
 menu = ["样品登记", "送出样品", "归还样品", "当前状态", "删除样品"]
@@ -52,6 +51,8 @@ choice = st.radio("选择操作", menu)
 
 if choice == "样品登记":
     st.header("📄 样品登记")
+    df = load_data()  # 这里读最新数据
+
     sample_type = st.text_input("型号").strip()
     sample_id = st.text_input("序列号").strip()
     sample_material = st.text_input("料号").strip()
@@ -76,6 +77,7 @@ if choice == "样品登记":
 
 elif choice == "送出样品":
     st.header("📤 送出样品")
+    df = load_data()  # 读最新数据
     sid = st.text_input("序列号").strip()
     client = st.text_input("送出客户").strip()
     send_attach = st.text_input("送出附件").strip()
@@ -100,6 +102,7 @@ elif choice == "送出样品":
 
 elif choice == "归还样品":
     st.header("📥 归还样品")
+    df = load_data()  # 读最新数据
     sid = st.text_input("序列号").strip()
     deliver_id = st.text_input("收货快递号").strip()
     return_attach = st.text_input("归还附件").strip()
@@ -121,6 +124,7 @@ elif choice == "归还样品":
 
 elif choice == "当前状态":
     st.header("📊 当前样品状态")
+    df = load_data()  # 读最新数据
     df_display = df.astype(str)
     st.dataframe(df_display, use_container_width=True)
 
@@ -142,6 +146,7 @@ elif choice == "当前状态":
 
 elif choice == "删除样品":
     st.header("❌ 删除样品")
+    df = load_data()  # 读最新数据
     sid = st.text_input("要删除的序列号").strip()
     confirm = st.checkbox("确认删除该样品")
 
